@@ -57,7 +57,7 @@ a{color:inherit}
 /* ---------- shared layout ---------- */
 .wrap{width:100%;max-width:var(--maxw);margin-inline:auto;padding-inline:var(--gutter)}
 
-section{padding-block:clamp(56px,8vw,104px)}
+section{padding-block:clamp(56px,8vw,104px);scroll-margin-top:58px}
 section + section{border-top:1px solid var(--rule)}
 
 .eyebrow{
@@ -114,7 +114,7 @@ h2.title{
 .navlinks{
   margin-left:auto;
   min-width:0;
-  display:flex;gap:clamp(14px,1.8vw,26px);
+  display:flex;gap:clamp(12px,1.3vw,18px);
   overflow-x:auto;
   scrollbar-width:none;
   -ms-overflow-style:none;
@@ -122,13 +122,15 @@ h2.title{
 }
 .navlinks::-webkit-scrollbar{display:none}
 .navlinks a{
-  font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
   color:var(--muted);text-decoration:none;white-space:nowrap;
   padding-bottom:2px;border-bottom:1px solid transparent;
   transition:color .18s ease,border-color .18s ease;
 }
 .navlinks a:hover,.navlinks a:focus-visible{color:var(--cream);border-bottom-color:var(--gold)}
-@media (max-width:620px){.brand{display:none}.navlinks{margin-left:0;width:100%}}
+.navlinks a.is-current,.navlinks a.is-current:hover{color:var(--gold);border-bottom-color:var(--gold)}
+/* Below this the ten links need the whole bar; the name is already in the hero. */
+@media (max-width:1180px){.brand{display:none}.navlinks{margin-left:0;width:100%}}
 
 /* ---------- hero ---------- */
 .hero{
@@ -408,6 +410,8 @@ footer .fine{
       <a href="#process">Process</a>
       <a href="#experience">Experience</a>
       <a href="#certifications">Certifications</a>
+      <a href="#support">Support</a>
+      <a href="#why">Why me</a>
       <a href="#contact">Contact</a>
     </nav>
   </div>
@@ -846,7 +850,7 @@ footer .fine{
         </div></div>
         <div class="reason"><span class="mark"></span><div>
           <h3>What I am asking for</h3>
-          <p>A team willing to train me into medical billing or revenue cycle work, patient intake workflows, referral processing, appointment scheduling, and EMR/EHR systems. I am not asking to be handed the role, only the runway to learn it properly.</p>
+          <p>A team willing to train me into medical billing or revenue cycle work. I am not asking to be handed the role, only the runway to learn it properly.</p>
         </div></div>
         <div class="reason"><span class="mark"></span><div>
           <h3>Why I am a safe bet</h3>
@@ -903,6 +907,85 @@ footer .fine{
     </div>
   </div>
 </footer>
+
+<script>
+/* Highlight the nav link for whichever section you are currently reading. */
+(function () {
+  var bar = document.querySelector('.navlinks');
+  var topbar = document.querySelector('.topbar');
+  if (!bar) return;
+
+  var targets = [];
+  Array.prototype.forEach.call(bar.querySelectorAll('a[href^="#"]'), function (link) {
+    var el = document.getElementById(link.getAttribute('href').slice(1));
+    if (el) targets.push({ link: link, el: el });
+  });
+  if (!targets.length) return;
+
+  var current = null;
+
+  function update() {
+    /* A section counts as "current" once its top passes just under the sticky bar.
+       Sections without their own nav link keep the previous link lit, which is why
+       every section between two links belongs to the one above it. */
+    var line = window.pageYOffset + (topbar ? topbar.offsetHeight : 56) + 24;
+    var active = null;
+
+    for (var i = 0; i < targets.length; i++) {
+      var top = targets[i].el.getBoundingClientRect().top + window.pageYOffset;
+      if (top <= line) active = targets[i];
+    }
+
+    /* At the very bottom the last section is often too short to cross the line. */
+    if (window.innerHeight + window.pageYOffset >= document.body.scrollHeight - 2) {
+      active = targets[targets.length - 1];
+    }
+
+    if (active === current) return;
+
+    if (current) {
+      current.link.classList.remove('is-current');
+      current.link.removeAttribute('aria-current');
+    }
+    current = active;
+    if (!current) return;
+
+    current.link.classList.add('is-current');
+    current.link.setAttribute('aria-current', 'true');
+
+    /* On narrow screens the nav scrolls sideways, so pull the lit link into view.
+       Scroll the strip itself rather than calling scrollIntoView, which would
+       also drag the page. Measure off the rects: offsetLeft is relative to the
+       offset parent, not to the strip's scrollable content, so mixing it with
+       scrollLeft lands a few pixels short. */
+    var pad = 16;
+    var linkBox = current.link.getBoundingClientRect();
+    var barBox = bar.getBoundingClientRect();
+    var offsetInView = linkBox.left - barBox.left;
+    var contentLeft = bar.scrollLeft + offsetInView;
+
+    if (offsetInView < pad) {
+      bar.scrollLeft = contentLeft - pad;
+    } else if (offsetInView + linkBox.width > bar.clientWidth - pad) {
+      bar.scrollLeft = contentLeft + linkBox.width - bar.clientWidth + pad;
+    }
+  }
+
+  var queued = false;
+  function onScroll() {
+    if (queued) return;
+    queued = true;
+    window.requestAnimationFrame(function () {
+      queued = false;
+      update();
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  update();
+})();
+</script>
 
 </body>
 </html>
